@@ -79,7 +79,11 @@ export async function onRequest(context) {
     const queryParams = Object.fromEntries(url.searchParams);
     let body = {};
     if (method === 'POST') {
-        body = await request.json().catch(() => ({}));
+        try {
+            body = await request.json();
+        } catch (e) {
+            body = {};
+        }
     }
 
     // 合并参数（兼容 GET 和 POST）
