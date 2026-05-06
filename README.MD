@@ -1,4 +1,4 @@
-# MxuePlay（原 MKOnlineMusicPlayer）
+# MusicPlayer（原 MKOnlineMusicPlayer）
 
 基于网易云音乐 API 的在线音乐播放器，部署在 EdgeOne Pages，无需服务器。
 
