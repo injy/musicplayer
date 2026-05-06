@@ -2,17 +2,12 @@
  * 喜欢 API - EdgeOne Edge Function
  * 使用 KV Storage 存储用户喜欢歌单数据
  * 
- * KV 绑定说明：
- * 1. 在 EdgeOne Pages 控制台启用 KV Storage
- * 2. 创建命名空间（如 music_kv）
- * 3. 绑定到项目，变量名设为 music_kv
- * 
- * KV key 格式：fav:{userId}
+ * KV key 格式：fav_{userId}（仅允许字母数字下划线）
  * KV value 格式：JSON 数组
  */
 
 // CORS 和 JSON 响应头
-const JSON_HEADERS = {
+var JSON_HEADERS = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -22,18 +17,20 @@ const JSON_HEADERS = {
     'Expires': '0',
 };
 
-function jsonResponse(data, status = 200) {
-    return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
+function jsonResponse(data, status) {
+    if (status === undefined) status = 200;
+    return new Response(JSON.stringify(data), { status: status, headers: JSON_HEADERS });
 }
 
-function errorResponse(message, status = 400) {
-    return jsonResponse({ success: false, message }, status);
+function errorResponse(message, status) {
+    if (status === undefined) status = 400;
+    return jsonResponse({ success: false, message: message }, status);
 }
 
 // 验证用户ID格式
 function validateUserId(userId) {
     if (!userId || typeof userId !== 'string') return false;
-    const trimmed = userId.trim();
+    var trimmed = userId.trim();
     return /^[a-zA-Z0-9]{1,20}$/.test(trimmed);
 }
 
@@ -55,29 +52,18 @@ function validateSong(song) {
     };
 }
 
-// 获取 KV 实例
-function getKV() {
-    // music_kv 是在控制台绑定时设置的全局变量名
-    // 参考：https://edgeone-pages-docs KV is a global variable, NOT on context.env
-    if (typeof music_kv !== 'undefined') {
-        return music_kv;
-    }
-    // 未绑定 KV 时的错误提示
-    throw new Error('KV 未绑定，请在 EdgeOne 控制台绑定 music_kv 命名空间');
-}
-
-export async function onRequest(context) {
-    const { request } = context;
-    const method = request.method;
+export default async function onRequest(context) {
+    var request = context.request;
+    var method = request.method;
 
     // 处理 CORS 预检请求
     if (method === 'OPTIONS') {
         return new Response(null, { headers: JSON_HEADERS });
     }
 
-    const url = new URL(request.url);
-    const queryParams = Object.fromEntries(url.searchParams);
-    let body = {};
+    var url = new URL(request.url);
+    var queryParams = Object.fromEntries(url.searchParams);
+    var body = {};
     if (method === 'POST') {
         try {
             body = await request.json();
@@ -86,9 +72,9 @@ export async function onRequest(context) {
         }
     }
 
-    // 合并参数（兼容 GET 和 POST）
-    const action = body.action || queryParams.action || 'get';
-    const userId = (body.user_id || queryParams.user_id || '').trim();
+    // 合并参数
+    var action = body.action || queryParams.action || 'get';
+    var userId = (body.user_id || queryParams.user_id || '').trim();
 
     // 验证用户ID
     if (!userId) {
@@ -98,16 +84,20 @@ export async function onRequest(context) {
         return errorResponse('用户ID格式错误：只允许字母和数字，长度1-20个字符');
     }
 
-    const kv = getKV();
-    const kvKey = `fav_${userId}`;
+    // 获取 KV 实例（music_kv 是控制台绑定时设置的全局变量名）
+    var kv = music_kv;
+    if (!kv) {
+        return errorResponse('KV 未绑定，请在 EdgeOne 控制台绑定 music_kv 命名空间', 500);
+    }
+
+    var kvKey = 'fav_' + userId;
 
     try {
         switch (action) {
             case 'get': {
-                const data = await kv.get(kvKey, 'json');
-                const favorites = Array.isArray(data) ? data : [];
-                // 限制返回数量
-                const result = favorites.slice(0, 10000);
+                var data = await kv.get(kvKey, 'json');
+                var favorites = Array.isArray(data) ? data : [];
+                var result = favorites.slice(0, 10000);
                 return jsonResponse({
                     success: true,
                     data: result,
@@ -116,17 +106,16 @@ export async function onRequest(context) {
             }
 
             case 'save': {
-                let favorites = body.favorites;
+                var favorites = body.favorites;
                 if (typeof favorites === 'string') {
-                    try { favorites = JSON.parse(favorites); } catch { return errorResponse('喜欢歌单数据格式错误'); }
+                    try { favorites = JSON.parse(favorites); } catch (e) { return errorResponse('喜欢歌单数据格式错误'); }
                 }
                 if (!Array.isArray(favorites)) return errorResponse('需要数组格式');
                 if (favorites.length > 10000) return errorResponse('歌曲数量不能超过10000首');
 
-                // 验证每首歌
-                const validated = [];
-                for (const song of favorites) {
-                    const v = validateSong(song);
+                var validated = [];
+                for (var i = 0; i < favorites.length; i++) {
+                    var v = validateSong(favorites[i]);
                     if (v) validated.push(v);
                 }
 
@@ -139,41 +128,41 @@ export async function onRequest(context) {
             }
 
             case 'incremental_sync': {
-                let localFavorites = body.local_favorites;
+                var localFavorites = body.local_favorites;
                 if (typeof localFavorites === 'string') {
-                    try { localFavorites = JSON.parse(localFavorites); } catch { return errorResponse('本地数据格式错误'); }
+                    try { localFavorites = JSON.parse(localFavorites); } catch (e) { return errorResponse('本地数据格式错误'); }
                 }
                 if (!Array.isArray(localFavorites)) return errorResponse('需要数组格式');
                 if (localFavorites.length > 10000) return errorResponse('歌曲数量不能超过10000首');
 
-                // 验证本地数据
-                const validLocal = [];
-                for (const song of localFavorites) {
-                    const v = validateSong(song);
+                var validLocal = [];
+                for (var i = 0; i < localFavorites.length; i++) {
+                    var v = validateSong(localFavorites[i]);
                     if (v) validLocal.push(v);
                 }
 
                 // 获取云端数据
-                const cloudData = await kv.get(kvKey, 'json');
-                const cloudFavorites = Array.isArray(cloudData) ? cloudData : [];
+                var cloudData = await kv.get(kvKey, 'json');
+                var cloudFavorites = Array.isArray(cloudData) ? cloudData : [];
 
-                // 合并：以 id+source 为唯一键，取最新的 added_time
-                const songMap = new Map();
-                for (const song of cloudFavorites) {
-                    const key = `${song.id}|${song.source}`;
-                    songMap.set(key, song);
+                // 合并：以 id+source 为唯一键
+                var songMap = new Map();
+                for (var i = 0; i < cloudFavorites.length; i++) {
+                    var song = cloudFavorites[i];
+                    var songKey = song.id + '|' + song.source;
+                    songMap.set(songKey, song);
                 }
-                for (const song of validLocal) {
-                    const key = `${song.id}|${song.source}`;
-                    const existing = songMap.get(key);
+                for (var i = 0; i < validLocal.length; i++) {
+                    var song = validLocal[i];
+                    var songKey = song.id + '|' + song.source;
+                    var existing = songMap.get(songKey);
                     if (!existing || (song.added_time && existing.added_time && song.added_time > existing.added_time)) {
-                        songMap.set(key, song);
+                        songMap.set(songKey, song);
                     }
                 }
 
-                const merged = Array.from(songMap.values());
-                // 按添加时间降序
-                merged.sort((a, b) => (b.added_time || 0) - (a.added_time || 0));
+                var merged = Array.from(songMap.values());
+                merged.sort(function(a, b) { return (b.added_time || 0) - (a.added_time || 0); });
 
                 await kv.put(kvKey, JSON.stringify(merged));
 
