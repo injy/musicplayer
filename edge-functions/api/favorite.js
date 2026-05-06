@@ -62,7 +62,8 @@ export default async function onRequest(context) {
     }
 
     var url = new URL(request.url);
-    var queryParams = Object.fromEntries(url.searchParams);
+    var queryParams = {};
+    url.searchParams.forEach(function(v, k) { queryParams[k] = v; });
     var body = {};
     if (method === 'POST') {
         try {

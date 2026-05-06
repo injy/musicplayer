@@ -478,50 +478,6 @@ function ajaxLyric(music, callback) {
             }
 
             callback(lyricText, music.id);    // 回调函数
-                // 如果未获取到歌词，尝试使用 name+artist 搜索回退一次
-                if (!music.__lyric_search_tried && music.name && music.artist) {
-                    music.__lyric_search_tried = true;
-                    $.ajax({
-                        type: mkPlayer.method,
-                        url: mkPlayer.api,
-                        data: "action=search&count=1&source=" + music.source + "&pages=1&name=" + encodeURIComponent(music.name + ' ' + music.artist),
-                        dataType: mkPlayer.dataType,
-                        success: function(searchData) {
-                            if (Array.isArray(searchData) && searchData.length > 0) {
-                                var first = searchData[0];
-                                if (first && first.id) {
-                                    // 使用第一条结果的 id 作为 lyric_id 再次请求歌词
-                                    music.lyric_id = first.id;
-                                    $.ajax({
-                                        type: mkPlayer.method,
-                                        url: mkPlayer.api,
-                                        data: "action=lyric&id=" + music.lyric_id + "&source=" + music.source,
-                                        dataType: mkPlayer.dataType,
-                                        success: function(retryLyric) {
-                                            if (Array.isArray(retryLyric) && retryLyric.length > 0) retryLyric = retryLyric[0];
-                                            if (retryLyric && retryLyric.lyric && typeof retryLyric.lyric === 'string') {
-                                                callback(retryLyric.lyric, music.id);
-                                            } else {
-                                                callback('', music.id);
-                                            }
-                                        },
-                                        error: function() {
-                                            callback('', music.id);
-                                        }
-                                    });
-                                    return;
-                                }
-                            }
-                            callback('', music.id);
-                        },
-                        error: function() {
-                            callback('', music.id);
-                        }
-                    });
-                    return;
-                }
-                callback('', music.id);    // 回调函数
-            }
         },   //success
         error: function(XMLHttpRequest, textStatus, errorThrown) {
             layer.msg('歌词读取失败 - ' + XMLHttpRequest.status);
