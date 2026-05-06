@@ -55,31 +55,15 @@ function validateSong(song) {
     };
 }
 
-// 获取 KV 实例（兼容有无绑定）
+// 获取 KV 实例
 function getKV() {
-    // music_kv 是在控制台绑定时设置的变量名
-    // 如果未绑定 KV，则使用内存临时存储（仅开发环境使用）
+    // music_kv 是在控制台绑定时设置的全局变量名
+    // 参考：https://edgeone-pages-docs KV is a global variable, NOT on context.env
     if (typeof music_kv !== 'undefined') {
         return music_kv;
     }
-    // 内存回退（开发用，重启后数据丢失）
-    if (!globalThis._memoryKV) {
-        globalThis._memoryKV = new Map();
-    }
-    return {
-        async get(key, type) {
-            const val = globalThis._memoryKV.get(key);
-            if (val === undefined) return null;
-            if (type === 'json') return JSON.parse(val);
-            return val;
-        },
-        async put(key, value) {
-            globalThis._memoryKV.set(key, typeof value === 'string' ? value : JSON.stringify(value));
-        },
-        async delete(key) {
-            globalThis._memoryKV.delete(key);
-        },
-    };
+    // 未绑定 KV 时的错误提示
+    throw new Error('KV 未绑定，请在 EdgeOne 控制台绑定 music_kv 命名空间');
 }
 
 export async function onRequest(context) {
@@ -111,7 +95,7 @@ export async function onRequest(context) {
     }
 
     const kv = getKV();
-    const kvKey = `fav:${userId}`;
+    const kvKey = `fav_${userId}`;
 
     try {
         switch (action) {
