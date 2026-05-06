@@ -744,11 +744,23 @@ function thisDownloadPic (obj) {
             data: "action=pic&id=" + music.pic_id + "&source=" + music.source,
             dataType: mkPlayer.dataType,
             success: function(jsonData){
-                if(mkPlayer.debug) {
-                    console.log("歌曲封面：" + jsonData.url);
+                // 适配网易 API 格式：{songs:[{al:{picUrl}}]}
+                var picUrl = '';
+                if(jsonData && jsonData.songs && jsonData.songs.length > 0) {
+                    var song = jsonData.songs[0];
+                    if(song.al && song.al.picUrl) picUrl = song.al.picUrl;
+                    else if(song.album && song.album.picUrl) picUrl = song.album.picUrl;
+                } else if(jsonData && jsonData.url) {
+                    picUrl = jsonData.url;
+                } else if(Array.isArray(jsonData) && jsonData.length > 0 && jsonData[0].url) {
+                    picUrl = jsonData[0].url;
                 }
-                if (jsonData.url) {
-                    open(jsonData.url.split('?')[0].split('@')[0]);
+                picUrl = picUrl.replace(/http:\/\//g, 'https://');
+                if(mkPlayer.debug) {
+                    console.log("歌曲封面：" + picUrl);
+                }
+                if (picUrl) {
+                    open(picUrl.split('?')[0].split('@')[0]);
                 } else {
                     layer.msg('没有封面');
                 }
@@ -775,7 +787,8 @@ function thisDownloadLrc (obj) {
                 console.debug("歌词获取成功");
             }
             
-            var lyric = jsonData.lyric;
+            // 适配网易 API 格式：{lrc:{lyric:""}}
+            var lyric = jsonData.lyric || (jsonData.lrc && jsonData.lrc.lyric) || '';
             if (mkPlayer.debug) {
                 console.debug("歌词获取成功");
             }

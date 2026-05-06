@@ -27,15 +27,22 @@ function ajaxSearch() {
             if(tmpLoading) layer.close(tmpLoading);    // 关闭加载中动画
         },  // complete
         success: function(jsonData){
+            // 适配网易 API 原始格式：{result:{songs:[...]}}
+            var songs = [];
+            if(jsonData && jsonData.result && jsonData.result.songs) {
+                songs = jsonData.result.songs;
+            } else if(Array.isArray(jsonData)) {
+                songs = jsonData; // 兼容旧格式
+            }
             
             // 调试信息输出
             if(mkPlayer.debug) {
-                console.debug("搜索结果数：" + jsonData.length);
+                console.debug("搜索结果数：" + songs.length);
             }
             
             if(rem.loadPage == 1)   // 加载第一页，清空列表
             {
-                if(jsonData.length === 0)   // 返回结果为零
+                if(songs.length === 0)   // 返回结果为零
                 {
                     layer.msg('没有找到相关歌曲', {anim:6});
                     return false;
@@ -44,10 +51,10 @@ function ajaxSearch() {
                 rem.mainList.html('');   // 清空列表中原有的元素
                 addListhead();      // 加载列表头
             } else {
-                $("#list-foot").remove();     //已经是加载后面的页码了，删除之前的“加载更多”提示
+                $("#list-foot").remove();     //已经是加载后面的页码了，删除之前的"加载更多"提示
             }
             
-            if(jsonData.length === 0)
+            if(songs.length === 0)
             {
                 addListbar("nomore");  // 加载完了
                 return false;
@@ -55,18 +62,30 @@ function ajaxSearch() {
             
             var tempItem = [], no = musicList[0].item.length;
             
-            for (var i = 0; i < jsonData.length; i++) {
+            for (var i = 0; i < songs.length; i++) {
                 no ++;
+                var song = songs[i];
+                // 适配网易云搜索结果格式
+                var artistName = '';
+                if(song.artist && Array.isArray(song.artist)) {
+                    artistName = song.artist[0]; // 旧格式
+                } else if(song.artists && song.artists.length > 0) {
+                    artistName = song.artists[0].name; // 网易 API 格式
+                } else if(song.ar && song.ar.length > 0) {
+                    artistName = song.ar[0].name; // 歌单格式
+                }
+                var albumName = song.album || (song.al && song.al.name) || '';
+                
                 tempItem =  {
-                    id: jsonData[i].id,  // 音乐ID
-                    name: jsonData[i].name,  // 音乐名字
-                    artist: jsonData[i].artist[0], // 艺术家名字
-                    album: jsonData[i].album,    // 专辑名字
-                    source: jsonData[i].source,     // 音乐来源
-                    url_id: jsonData[i].url_id,  // 链接ID
-                    pic_id: jsonData[i].pic_id,  // 封面ID
-                    lyric_id: jsonData[i].lyric_id,  // 歌词ID
-                    pic: null,    // 专辑图片
+                    id: song.id,  // 音乐ID
+                    name: song.name,  // 音乐名字
+                    artist: artistName, // 艺术家名字
+                    album: albumName,    // 专辑名字
+                    source: song.source || "netease",     // 音乐来源
+                    url_id: song.url_id || song.id,  // 链接ID
+                    pic_id: song.pic_id || (song.album && song.album.pic_str) || (song.album && song.album.id) || (song.al && song.al.pic_str) || song.id,  // 封面ID
+                    lyric_id: song.lyric_id || song.id,  // 歌词ID
+                    pic: song.pic || (song.al && song.al.picUrl ? song.al.picUrl + "?param=300y300" : null),    // 专辑图片
                     url: null   // mp3链接
                 };
                 musicList[0].item.push(tempItem);   // 保存到搜索结果临时列表中
@@ -117,13 +136,17 @@ function ajaxUrl(music, callback)
         data: "action=url&id=" + music.id + "&source=" + music.source,
         dataType: mkPlayer.dataType,
         success: function(jsonData){
-            // 修复：处理API返回的数组格式
-            if(Array.isArray(jsonData) && jsonData.length > 0) {
-                jsonData = jsonData[0]; // 取第一个元素
+            // 适配网易 API 格式：{data:[{url}]}
+            var urlData = null;
+            if(jsonData && jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0) {
+                urlData = jsonData.data[0]; // 网易 API 格式
+            } else if(Array.isArray(jsonData) && jsonData.length > 0) {
+                urlData = jsonData[0]; // 旧格式
+            } else if(jsonData && jsonData.url) {
+                urlData = jsonData; // 直接对象格式
             }
             
-            // 修复：确保jsonData是有效对象
-            if(!jsonData || typeof jsonData !== 'object') {
+            if(!urlData || typeof urlData !== 'object') {
                 console.warn('API返回数据格式异常:', jsonData);
                 music.url = "err";
                 updateMinfo(music);
@@ -131,30 +154,32 @@ function ajaxUrl(music, callback)
                 return true;
             }
             
+            // HTTP→HTTPS 替换（在客户端处理）
+            if(typeof urlData.url === 'string') {
+                urlData.url = urlData.url.replace(/http:\/\//g, 'https://');
+            }
+            
             // 调试信息输出
             if(mkPlayer.debug) {
-                console.debug("歌曲链接：" + (jsonData.url || 'undefined'));
+                console.debug("歌曲链接：" + (urlData.url || 'undefined'));
             }
             
             // 解决网易云音乐部分歌曲无法播放问题
             if(music.source == "netease") {
-                if(!jsonData.url || jsonData.url === "") {
-                    jsonData.url = "https://music.163.com/song/media/outer/url?id=" + music.id + ".mp3";
+                if(!urlData.url || urlData.url === "") {
+                    urlData.url = "https://music.163.com/song/media/outer/url?id=" + music.id + ".mp3";
                 } else {
-                    // 确保url是字符串才能调用replace
-                    if(typeof jsonData.url === 'string') {
-                        jsonData.url = jsonData.url.replace(/m7c.music./g, "m7.music.");
-                        jsonData.url = jsonData.url.replace(/m8c.music./g, "m8.music.");
+                    if(typeof urlData.url === 'string') {
+                        urlData.url = urlData.url.replace(/m7c.music./g, "m7.music.");
+                        urlData.url = urlData.url.replace(/m8c.music./g, "m8.music.");
                     }
                 }
-            } else if(music.source == "baidu" && typeof jsonData.url === 'string') {    // 解决百度音乐防盗链
-                jsonData.url = jsonData.url.replace(/http:\/\/zhangmenshiting.qianqian.com/g, "https://gss0.bdstatic.com/y0s1hSulBw92lNKgpU_Z2jR7b2w6buu");
             }
             
-            if(!jsonData.url || jsonData.url === "") {
+            if(!urlData.url || urlData.url === "") {
                 music.url = "err";
             } else {
-                music.url = jsonData.url;    // 记录结果
+                music.url = urlData.url;    // 记录结果
             }
             
             updateMinfo(music); // 更新音乐信息
@@ -201,27 +226,31 @@ function ajaxPic(music, callback)
         data: "action=pic&id=" + picIdToUse + "&source=" + music.source,
         dataType: mkPlayer.dataType,
         success: function(jsonData){
-            // 修复：处理API返回的数组格式
-            if(Array.isArray(jsonData) && jsonData.length > 0) {
-                jsonData = jsonData[0]; // 取第一个元素
-            }
-            
-            // 修复：确保jsonData是有效对象
-            if(!jsonData || typeof jsonData !== 'object') {
-                console.warn('封面API返回数据格式异常:', jsonData);
-                music.pic = "err";
-                updateMinfo(music);
-                callback(music);
-                return true;
+            // 适配网易 API 格式：{songs:[{al:{picUrl}}]}
+            var picUrl = '';
+            if(jsonData && jsonData.songs && jsonData.songs.length > 0) {
+                // 网易 API /song/detail 格式
+                var song = jsonData.songs[0];
+                if(song.al && song.al.picUrl) {
+                    picUrl = song.al.picUrl.replace(/http:\/\//g, 'https://');
+                } else if(song.album && song.album.picUrl) {
+                    picUrl = song.album.picUrl.replace(/http:\/\//g, 'https://');
+                }
+            } else if(Array.isArray(jsonData) && jsonData.length > 0 && jsonData[0].url) {
+                // 旧格式 [{url}]
+                picUrl = jsonData[0].url.replace(/http:\/\//g, 'https://');
+            } else if(jsonData && jsonData.url) {
+                // 旧格式 {url}
+                picUrl = jsonData.url.replace(/http:\/\//g, 'https://');
             }
             
             // 调试信息输出
             if(mkPlayer.debug) {
-                console.log("歌曲封面：" + (jsonData.url || 'undefined'));
+                console.log("歌曲封面：" + (picUrl || 'undefined'));
             }
             
-            if(jsonData.url && jsonData.url !== "") {
-                music.pic = jsonData.url;    // 记录结果
+            if(picUrl && picUrl !== "") {
+                music.pic = picUrl;    // 记录结果
             } else {
                 music.pic = "err";
             }
@@ -318,35 +347,48 @@ function ajaxPlayList(lid, id, callback) {
             musicList[id].isloading = false;    // 列表已经加载完了
         },  // complete
         success: function(jsonData){
+            if(!jsonData || !jsonData.playlist) {
+                layer.msg('歌单数据格式异常', {anim:6});
+                return false;
+            }
+            
+            var pl = jsonData.playlist;
+            // HTTP→HTTPS 替换（在客户端处理）
+            var coverImgUrl = (pl.coverImgUrl || '').replace(/http:\/\//g, 'https://');
+            var creatorNickname = pl.creator ? pl.creator.nickname : '未知';
+            var creatorAvatarUrl = pl.creator ? (pl.creator.avatarUrl || '').replace(/http:\/\//g, 'https://') : '';
+            
             // 存储歌单信息
             var tempList = {
                 id: lid,    // 列表的网易云 id
-                name: jsonData.playlist.name,   // 列表名字
-                cover: jsonData.playlist.coverImgUrl,   // 列表封面
-                creatorName: jsonData.playlist.creator.nickname,   // 列表创建者名字
-                creatorAvatar: jsonData.playlist.creator.avatarUrl,   // 列表创建者头像
+                name: pl.name,   // 列表名字
+                cover: coverImgUrl,   // 列表封面
+                creatorName: creatorNickname,   // 列表创建者名字
+                creatorAvatar: creatorAvatarUrl,   // 列表创建者头像
                 item: []
             };
             
-            if(jsonData.playlist.coverImgUrl !== '') {
-                tempList.cover = jsonData.playlist.coverImgUrl + "?param=200y200";
+            if(coverImgUrl !== '') {
+                tempList.cover = coverImgUrl + "?param=200y200";
             } else {
                 tempList.cover = musicList[id].cover;
             }
             
-            if(typeof jsonData.playlist.tracks !== undefined || jsonData.playlist.tracks.length !== 0) {
+            if(pl.tracks && pl.tracks.length > 0) {
                 // 存储歌单中的音乐信息
-                for (var i = 0; i < jsonData.playlist.tracks.length; i++) {
+                for (var i = 0; i < pl.tracks.length; i++) {
+                    var track = pl.tracks[i];
+                    var picUrl = (track.al && track.al.picUrl) ? track.al.picUrl.replace(/http:\/\//g, 'https://') : '';
                     tempList.item[i] =  {
-                        id: jsonData.playlist.tracks[i].id,  // 音乐ID
-                        name: jsonData.playlist.tracks[i].name,  // 音乐名字
-                        artist: jsonData.playlist.tracks[i].ar[0].name, // 艺术家名字
-                        album: jsonData.playlist.tracks[i].al.name,    // 专辑名字
+                        id: track.id,  // 音乐ID
+                        name: track.name,  // 音乐名字
+                        artist: track.ar && track.ar[0] ? track.ar[0].name : '未知', // 艺术家名字
+                        album: track.al ? track.al.name : '',    // 专辑名字
                         source: "netease",     // 音乐来源
-                        url_id: jsonData.playlist.tracks[i].id,  // 链接ID
-                        pic_id: null,  // 封面ID
-                        lyric_id: jsonData.playlist.tracks[i].id,  // 歌词ID
-                        pic: jsonData.playlist.tracks[i].al.picUrl + "?param=300y300",    // 专辑图片
+                        url_id: track.id,  // 链接ID
+                        pic_id: track.al && track.al.pic_str ? track.al.pic_str : track.id,  // 封面ID
+                        lyric_id: track.id,  // 歌词ID
+                        pic: picUrl ? picUrl + "?param=300y300" : null,    // 专辑图片
                         url: null   // mp3链接
                     };
                 }
@@ -414,12 +456,17 @@ function ajaxLyric(music, callback) {
         data: "action=lyric&id=" + music.lyric_id + "&source=" + music.source,
         dataType: mkPlayer.dataType,
         success: function(jsonData){
-            // 处理可能的数组格式并检查数据有效性
-            if(Array.isArray(jsonData) && jsonData.length > 0) {
-                jsonData = jsonData[0]; // 取第一个元素
+            // 适配网易 API 格式：{lrc:{lyric:""}}
+            var lyricText = '';
+            if(jsonData && jsonData.lrc && jsonData.lrc.lyric && typeof jsonData.lrc.lyric === 'string') {
+                lyricText = jsonData.lrc.lyric; // 网易 API 格式
+            } else if(jsonData && jsonData.lyric && typeof jsonData.lyric === 'string') {
+                lyricText = jsonData.lyric; // 旧格式
+            } else if(Array.isArray(jsonData) && jsonData.length > 0 && jsonData[0].lyric) {
+                lyricText = jsonData[0].lyric; // 旧数组格式
             }
 
-            if(!jsonData || typeof jsonData !== 'object') {
+            if(!lyricText) {
                 console.warn('歌词API返回数据格式异常:', jsonData);
                 callback('', music.id);
                 return;
@@ -430,9 +477,7 @@ function ajaxLyric(music, callback) {
                 console.debug("歌词获取成功");
             }
 
-                if (jsonData.lyric && typeof jsonData.lyric === 'string') {
-                callback(jsonData.lyric, music.id);    // 回调函数
-            } else {
+            callback(lyricText, music.id);    // 回调函数
                 // 如果未获取到歌词，尝试使用 name+artist 搜索回退一次
                 if (!music.__lyric_search_tried && music.name && music.artist) {
                     music.__lyric_search_tried = true;
@@ -522,14 +567,19 @@ function ajaxUserList(uid)
                 
                 for (var i = 0; i < jsonData.playlist.length; i++)
                 {
+                    var plItem = jsonData.playlist[i];
+                    // HTTP→HTTPS 替换（在客户端处理）
+                    var coverUrl = (plItem.coverImgUrl || '').replace(/http:\/\//g, 'https://');
+                    var avatarUrl = plItem.creator ? (plItem.creator.avatarUrl || '').replace(/http:\/\//g, 'https://') : '';
+                    var nickname = plItem.creator ? plItem.creator.nickname : '未知';
                     // 获取歌单信息
                     tempList = {
-                        id: jsonData.playlist[i].id,    // 列表的网易云 id
-                        name: jsonData.playlist[i].name,   // 列表名字
-                        cover: jsonData.playlist[i].coverImgUrl  + "?param=200y200",   // 列表封面
+                        id: plItem.id,    // 列表的网易云 id
+                        name: plItem.name,   // 列表名字
+                        cover: coverUrl + "?param=200y200",   // 列表封面
                         creatorID: uid,   // 列表创建者id
-                        creatorName: jsonData.playlist[i].creator.nickname,   // 列表创建者名字
-                        creatorAvatar: jsonData.playlist[i].creator.avatarUrl,   // 列表创建者头像
+                        creatorName: nickname,   // 列表创建者名字
+                        creatorAvatar: avatarUrl,   // 列表创建者头像
                         item: []
                     };
                     // 存储并显示播放列表
