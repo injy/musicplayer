@@ -1,0 +1,9 @@
+{
+  "name": "mk-music-player",
+  "version": "2.44",
+  "private": true,
+  "scripts": {
+    "dev": "npx edgeone pages dev",
+    "preview": "npx edgeone pages dev"
+  }
+}
