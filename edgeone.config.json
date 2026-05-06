@@ -1,0 +1,15 @@
+{
+  "build": {
+    "outputDirectory": "."
+  },
+  "routes": [
+    {
+      "src": "/api/music",
+      "dest": "/edge-functions/api/music.js"
+    },
+    {
+      "src": "/api/favorite",
+      "dest": "/edge-functions/api/favorite.js"
+    }
+  ]
+}

@@ -1,0 +1,455 @@
+@charset "utf-8";
+/**************************************************
+ * MKOnlinePlayer v2.31
+ * 小屏幕样式修复
+ * 编写：mengkun(http://mkblog.cn)
+ * 时间：2017-9-13
+ * 
+ * 更新：2025-12-11 by 创意哥
+ * 优化移动端触摸体验和交互
+ * 修复移动端喜欢功能：菜单显示、图标样式、按钮布局
+ * 修复播放器按钮错位问题：调整按钮定位、大小和底部布局
+ * 移除音量控制
+ * 优化喜欢歌单显示：只显示喜欢按钮，隐藏播放和下载按钮，背景完全透明
+ * 更新版本号为v2025121118防止缓存
+ *************************************************/
+
+/* 小于 900px 采用这个样式 */
+@media screen and (max-width: 900px) {
+    /*隐藏头部logo*/
+    .header {
+        display: none;
+    }
+    /*中部顶格*/
+    .center {
+        top: 0;
+    }
+    
+    /* 调出播放器按钮 */
+    .btn[data-action='player'] {
+        display: inline-block;
+    }
+    
+    /* 按钮工具条区域 */
+    .btn-bar {
+        height: 35px;
+        right: 0;
+        z-index: 999;
+    }
+    .btn-box {
+        background-color: #000;
+        background-color: rgba(0, 0, 0, 0.12);
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+    .btn {
+        margin: 0;
+        padding: 0;
+        width: 25%;
+        height: 100%;
+        display: block;
+        float: left;
+        border: none;
+        text-align: center;
+        line-height: 35px;
+        color: #C5C5C5;
+    }
+    .btn:hover {
+        border: none;
+    }
+    .btn-box .active:after {
+        content: '';
+        display: block;
+        border-bottom: 3px solid #A2A0A0;
+        margin-top: -3px;
+    }
+    
+    /* 中部容器区域 */
+    .data-area {
+        top: 40px;
+    }
+    
+    /*数据区域占满整个屏幕*/
+    .data-area {
+        right: 0;
+    }
+    
+    
+    /* 列表菜单在移动端的显示优化 */
+    .list-menu {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        overflow: hidden;
+        font-size: 0;
+        height: 36px;
+        margin-top: -18px;
+        float: right;
+        display: block !important;  /* 移动端强制显示 */
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 18px;
+        padding: 0 5px;
+        z-index: 10;
+    }
+    .music-name-cult {
+        padding-right: 0!important;
+    }
+    
+    /* 专辑区域腾出位置 */
+    .music-album {
+        margin-right: 30px;
+    }
+    /* 小屏幕的列表菜单 */
+    .list-mobile-menu {
+        display: none;  /* 移动端不需要单独的菜单图标，直接显示操作按钮 */
+    }
+
+    /* 强制在小屏幕隐藏播放和下载图标，防止被缩小显示 */
+    .list-menu .icon-play,
+    .list-menu .icon-download,
+    .list-menu .list-icon.icon-play,
+    .list-menu .list-icon.icon-download {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        visibility: hidden !important;
+    }
+    
+    /*控制按钮区域优化为移动端*/
+    .con-btn {
+        width: 160px;  /* 减少宽度，只有三个按钮 */
+        height: 100%;
+        position: relative;
+        margin: 0 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .con-btn a {
+        position: relative !important;
+        display: block !important;
+        touch-action: manipulation;  /* 优化触摸响应 */
+        -webkit-tap-highlight-color: transparent;  /* 移除点击高亮 */
+        transform: scale(1.2);  /* 所有按钮放大便于触摸 */
+        left: auto !important;
+        right: auto !important;
+        top: auto !important;
+        margin: 0 !important;
+    }
+    .btn-prev {
+        width: 19px;
+        height: 20px;
+        margin-top: -10px;
+    }
+    .btn-play {
+        width: 19px;
+        height: 29px;
+        margin-top: -14.5px;
+        transform: scale(1.5);  /* 播放按钮更大 */
+    }
+    .btn-next {
+        width: 19px;
+        height: 20px;
+        margin-top: -10px;
+    }
+    /* 循环按钮保持原有位置 - 在下一首歌按钮右边 */
+    .con-btn {
+        width: 160px !important;  /* 恢复为四个按钮的宽度 */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+    .con-btn a {
+        position: relative !important;
+        display: block !important;
+        touch-action: manipulation;  /* 优化触摸响应 */
+        -webkit-tap-highlight-color: transparent;  /* 移除点击高亮 */
+        transform: scale(1.2);  /* 所有按钮放大便于触摸 */
+        left: auto !important;
+        right: auto !important;
+        top: auto !important;
+        margin: 0 !important;
+    }
+    .con-btn .btn-order {
+        background-size: 450% !important;
+        background-position: 0 -173px !important;
+        display: block !important;
+    }
+    .con-btn .btn-order-single {
+        background-position: 0 -196px !important;
+    }
+    .con-btn .btn-order-list {
+        background-position: 0 -173px !important;
+    }
+    .con-btn .btn-order-random {
+        background-position: 0 -62px !important;
+        height: 18px !important;
+        margin-top: 0 !important;
+    }
+    /*进度条调整 - 移动端优化*/
+    .progress {
+        width: auto;
+        margin-left: 180px;  /* 为控制按钮腾出空间 */
+        margin-right: 40px;  /* 增加与循环按钮的距离，防止误触 */
+        height: 100%;
+        position: relative;
+        padding: 0 10px;  /* 左右各增加内边距，进一步防止误触 */
+        box-sizing: border-box;
+    }
+    .progress-box {
+        height: 20px;  /* 增加进度条高度 */
+        position: absolute;
+        width: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-top: 0;
+    }
+    /* 进度条触摸优化 */
+    #music-progress {
+        height: 20px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .mkpgb-dot {
+        width: 16px !important;
+        height: 16px !important;
+        top: 2px !important;  /* 居中对齐 */
+    }
+    /*音量控制区域隐藏 - 移动端跟随系统音量*/
+    .vol {
+        display: none;  /* 完全隐藏音量控制 */
+    }
+    
+    /*隐藏右侧歌词及封面*/
+    .player {
+        display: none;
+        width: 100%;
+    }
+    .cover {
+        margin-top: 60px;
+    }
+    #lyric {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+    .lyric {
+        top: 260px;
+    }
+    
+    /* 移动端触摸优化 */
+    .btn, .player-btn, .list-item, .sheet-item {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        user-select: none;
+    }
+    
+    /* 移动端列表菜单图标优化 */
+    .list-icon {
+        display: inline-block !important;
+        width: 32px !important;
+        height: 32px !important;
+        margin: 2px 3px;
+        border-radius: 16px;
+        background-size: 16px 16px !important;
+        background-position: center center !important;
+        background-repeat: no-repeat !important;
+        background-color: rgba(255, 255, 255, 0.2);
+        transition: all 0.2s ease;
+    }
+    
+    .list-icon:hover {
+        background-color: rgba(255, 255, 255, 0.3) !important;
+        transform: scale(1.1);
+    }
+    
+    /* 喜欢图标特殊样式 */
+    .icon-favorite {
+        background-image: url(../images/player.png) !important;
+        background-position: -150px -248px !important;  /* 空心爱心 */
+    }
+    
+    .icon-favorite.active {
+        background-position: -150px -232px !important;  /* 实心爱心 */
+        background-color: rgba(255, 67, 54, 0.3) !important;
+    }
+    
+    /* 歌曲列表项触摸优化 */
+    .list-item {
+        min-height: 50px;  /* 增加最小高度便于触摸 */
+        padding: 8px 0;
+    }
+    
+    /* 移动端歌词显示优化 */
+    #lyric {
+        font-size: 14px;  /* 稍微增大字体 */
+        line-height: 1.8;  /* 增加行间距 */
+    }
+    
+    /* 移动端全屏播放器模式优化 */
+    .player {
+        background: rgba(0, 0, 0, 0.9);
+    }
+    
+    /* 移动端喜欢歌单特殊按钮优化 - 只显示喜欢按钮 */
+    .sheet-setup-btn {
+        display: inline-block !important;
+        width: 28px !important;
+        height: 28px !important;
+        line-height: 26px !important;
+        text-align: center !important;
+        background: transparent !important;  /* 背景完全透明 */
+        border: none !important;
+        border-radius: 0 !important;
+        margin-left: 5px !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+        font-size: 14px !important;
+        color: #ff6b6b !important;  /* 喜欢按钮颜色 */
+    }
+    
+    .sheet-setup-btn:hover {
+        background: transparent !important;
+        transform: scale(1.1) !important;
+        color: #ff5252 !important;
+    }
+    
+    /* 隐藏其他同步按钮 */
+    .favorite-sync-btn {
+        display: none !important;
+    }
+    
+    /* 隐藏整个按钮容器背景 */
+    #sheet[data-type="3"] .listbar {
+        background: transparent !important;
+        border: none !important;
+        padding: 5px !important;
+    }
+    
+    /* 移动端通用菜单样式 */
+    .list-menu.mobile-menu,
+    .list-menu.favorite-menu {
+        background: transparent !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        width: 32px !important;
+        height: 50px !important;
+        position: absolute !important;
+        right: 5px !important;
+        top: 50% !important;
+        margin-top: -25px !important;  /* 高度的一半，实现精确居中 */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        /* 重置原有样式 */
+        overflow: visible !important;
+        font-size: 0 !important;
+        float: none !important;
+        z-index: 10 !important;
+    }
+    
+    .list-menu.mobile-menu .icon-favorite,
+    .list-menu.favorite-menu .icon-favorite {
+        display: inline-block !important;
+        width: 32px !important;
+        height: 32px !important;
+        margin: 0 auto !important;  /* 水平居中 */
+        border-radius: 16px !important;
+        background-size: 16px 16px !important;
+        background-position: center center !important;
+        background-repeat: no-repeat !important;
+        background-color: rgba(255, 107, 107, 0.1) !important;
+        transition: all 0.2s ease !important;
+        position: relative !important;  /* 改为相对定位 */
+        top: 50% !important;
+        transform: translateY(-50%) !important;  /* 使用transform实现精确垂直居中 */
+    }
+    
+    .list-menu.mobile-menu .icon-favorite:hover,
+    .list-menu.favorite-menu .icon-favorite:hover {
+        background-color: rgba(255, 107, 107, 0.2) !important;
+        transform: translateY(-50%) scale(1.1) !important;  /* 保持垂直居中同时缩放 */
+    }
+    
+    /* 移动端喜欢歌单提示优化 */
+    #sheet[data-type="3"] .sheet-item {
+        position: relative;
+    }
+    
+    #sheet[data-type="3"] .sheet-item .sheet-name {
+        padding-right: 40px;  /* 为设置按钮腾出空间 */
+    }
+    
+    /* 歌曲详情弹窗中的喜欢按钮样式 */
+    .info-btn-favorite-add {
+        background-color: #ff6b6b !important;
+        color: white !important;
+    }
+    
+    .info-btn-favorite-remove {
+        background-color: #e74c3c !important;
+        color: white !important;
+    }
+}
+
+/* 小于 620px 采用这个样式 */
+@media screen and (max-width: 620px) {
+    /*歌手名字*/
+    .auth-name {
+        width: 35%;
+        padding-right: 30px;
+        box-sizing: border-box;
+    }
+    /*音乐名字拉长*/
+    .music-name {
+        margin-right: 35%;
+    }
+}
+
+    /* 小于 500px 采用这个样式 */
+    @media screen and (max-width: 500px) {
+        .center {
+            bottom: 80px;  /* 为更大的按钮预留空间 */
+        }
+        /* 歌单封面 */
+        .sheet-item {   
+            width: 33.33%;
+        }
+        /* 歌单名字 */
+        .sheet-name {
+            max-width: 100px;
+        }
+        .cover {
+            margin-top: 50px;
+        }
+        .footer {
+            height: 80px;  /* 增加底部高度适应更大按钮 */
+        }
+        /* 在小屏幕上进一步优化控制按钮 */
+        .con-btn {
+            width: 140px;  /* 小屏幕上更小 */
+        }
+        .con-btn a {
+            transform: scale(1.0);  /* 稍微缩小但仍然比默认大 */
+        }
+        .btn-play {
+            transform: scale(1.2);  /* 播放按钮仍然突出 */
+        }
+        .progress {
+            margin-left: 160px;  /* 小屏幕上减少左边距 */
+            margin-right: 30px;  /* 小屏幕也要防止误触 */
+            padding: 0 5px;  /* 小屏幕适当减少内边距 */
+        }
+    }
+
+/* 小于 350px 采用这个样式 */
+@media screen and (max-width: 350px) {
+    /* 歌单封面 */
+    .sheet-item {   
+        width: 50%;
+    }
+}

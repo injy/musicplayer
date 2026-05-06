@@ -1,0 +1,18 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# CodeBuddy
+.codebuddy/
+
+# Old PHP files (kept for reference, not needed)
+# cache/
+# user_data/
+# temp/
