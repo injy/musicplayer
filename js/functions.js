@@ -146,6 +146,21 @@ var isMobile = {
 // 初始化layui（提供回退以防插件被移除）
 var layer;
 var form;
+
+// 显示公告弹窗
+function showPlacard() {
+    if (!mkPlayer.placard || !layer) return;
+    try { layer.config({ shade: [0.25,'#000'], shadeClose: true }); } catch(e) {}
+    var openPlacard = function () {
+        try { layer.open({ btn: ['我知道了'], title: '公告', maxWidth: 320, content: $('#layer-placard-box').html() }); } catch(e) {}
+    };
+    if (document.readyState === 'complete') {
+        openPlacard();
+    } else {
+        window.addEventListener('load', openPlacard);
+    }
+}
+
 // 优先使用已经由 CDN 或其它脚本挂载到全局的 `layer`
 if (typeof window.layer !== 'undefined' && window.layer) {
     layer = window.layer;
@@ -157,22 +172,13 @@ if (typeof window.layer !== 'undefined' && window.layer) {
     } else {
         form = window.form || {};
     }
+    showPlacard();
 } else if (typeof layui !== 'undefined' && layui && typeof layui.use === 'function') {
     // 使用 layui 模块加载 layer 与 form
     layui.use(['layer', 'form'], function(){
         layer = layui.layer;
         form = layui.form;
-        if (mkPlayer.placard && layer) {
-            try { layer.config({ shade: [0.25,'#000'], shadeClose: true }); } catch(e) {}
-            var showPlacard = function () {
-                try { layer.open({ btn: ['我知道了'], title: '公告', maxWidth: 320, content: $('#layer-placard-box').html() }); } catch(e) {}
-            };
-            if (document.readyState === 'complete') {
-                showPlacard();
-            } else {
-                window.addEventListener('load', showPlacard);
-            }
-        }
+        showPlacard();
     });
 } else {
     // 简单回退实现，避免缺少 layui 导致脚本中断
