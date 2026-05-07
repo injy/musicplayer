@@ -164,9 +164,14 @@ if (typeof window.layer !== 'undefined' && window.layer) {
         form = layui.form;
         if (mkPlayer.placard && layer) {
             try { layer.config({ shade: [0.25,'#000'], shadeClose: true }); } catch(e) {}
-            window.onload = function () {
+            var showPlacard = function () {
                 try { layer.open({ btn: ['我知道了'], title: '公告', maxWidth: 320, content: $('#layer-placard-box').html() }); } catch(e) {}
             };
+            if (document.readyState === 'complete') {
+                showPlacard();
+            } else {
+                window.addEventListener('load', showPlacard);
+            }
         }
     });
 } else {
